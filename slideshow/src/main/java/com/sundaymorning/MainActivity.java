@@ -95,9 +95,15 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(MainActivity.this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
         } else {
             if (!mBluetoothAdapter.isEnabled()) {
-                Intent intentEnableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                //for discoverable
+                Intent intentEnableBluetooth =
+                        new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+                intentEnableBluetooth.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+                startActivity(intentEnableBluetooth);
+                //old code
+                /*Intent intentEnableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                 intentEnableBluetooth.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivityForResult(intentEnableBluetooth, 0);
+                startActivityForResult(intentEnableBluetooth, 0);*/
             }
         }
 
