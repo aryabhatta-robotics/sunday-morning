@@ -14,7 +14,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "ru.adonixis.slideshowremotecontrol.control"
+        applicationId "com.sundaymorning.slideshowremotecontrol"
         minSdkVersion 16
         targetSdkVersion 26
         versionCode 1
