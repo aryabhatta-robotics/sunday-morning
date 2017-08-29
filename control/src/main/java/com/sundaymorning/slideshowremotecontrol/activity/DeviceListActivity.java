@@ -1,4 +1,4 @@
-package com.sundaymorning.slideshowremotecontrol;
+package com.sundaymorning.slideshowremotecontrol.activity;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
@@ -16,6 +16,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
+import com.sundaymorning.slideshowremotecontrol.R;
 import com.sundaymorning.slideshowremotecontrol.databinding.ActivityDeviceListBinding;
 
 import java.util.Set;

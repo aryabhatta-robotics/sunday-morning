@@ -1,4 +1,6 @@
-package com.sundaymorning.slideshowremotecontrol;
+package com.sundaymorning.slideshowremotecontrol.util;
+
+import com.sundaymorning.slideshowremotecontrol.service.BluetoothChatService;
 
 /**
  * Defines several constants used between {@link BluetoothChatService} and the UI.

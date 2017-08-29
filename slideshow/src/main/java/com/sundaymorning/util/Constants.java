@@ -1,4 +1,6 @@
-package com.sundaymorning;
+package com.sundaymorning.util;
+
+import com.sundaymorning.service.BluetoothChatService;
 
 /**
  * Defines several constants used between {@link BluetoothChatService} and the UI.

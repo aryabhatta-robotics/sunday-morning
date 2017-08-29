@@ -11,7 +11,7 @@
     <android.support.design.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context=".MainActivity">
+        tools:context=".activity.MainActivity">
 
         <android.support.design.widget.AppBarLayout
             android:layout_width="match_parent"
@@ -63,6 +63,22 @@
                 android:layout_marginRight="8dp"
                 android:textAllCaps="false"
                 android:text="Set WiFi to Remote Device"
+                android:visibility="gone"
+                />
+
+            <Button
+                android:id="@+id/btn_choose_album"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintTop_toBottomOf="@+id/btn_set_wifi_settings"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                android:layout_marginTop="8dp"
+                android:layout_marginLeft="8dp"
+                android:layout_marginRight="8dp"
+                android:textAllCaps="false"
+                android:text="Choose Google Photo album"
+                android:visibility="gone"
                 />
 
         </android.support.constraint.ConstraintLayout>

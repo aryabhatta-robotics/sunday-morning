@@ -1,6 +1,10 @@
-package com.sundaymorning.slideshowremotecontrol;
+package com.sundaymorning.slideshowremotecontrol.activity;
 
 import android.Manifest;
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.accounts.AccountManagerCallback;
+import android.accounts.AccountManagerFuture;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -13,39 +17,82 @@ import android.content.pm.PackageManager;
 import android.databinding.DataBindingUtil;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import com.google.android.gms.common.AccountPicker;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.google.gdata.client.photos.PicasawebService;
+import com.google.gdata.data.photos.AlbumEntry;
+import com.google.gdata.data.photos.GphotoEntry;
+import com.google.gdata.data.photos.GphotoFeed;
+import com.google.gdata.data.photos.UserFeed;
+import com.google.gdata.util.ServiceException;
+import com.google.gdata.util.ServiceForbiddenException;
+import com.sundaymorning.slideshowremotecontrol.R;
 import com.sundaymorning.slideshowremotecontrol.databinding.ActivityMainBinding;
+import com.sundaymorning.slideshowremotecontrol.model.GooglePhotosInfo;
+import com.sundaymorning.slideshowremotecontrol.service.BluetoothChatService;
+import com.sundaymorning.slideshowremotecontrol.util.Constants;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     ActivityMainBinding mActivityMainBinding;
     private static final String TAG = "SlideshowRemoteControl";
+    private static final int PERMISSIONS_REQUEST_CODE = 1;
     private static final int PERMISSIONS_REQUEST_CODE_ACCESS_COARSE_LOCATION = 2;
     private static final int REQUEST_CONNECT_DEVICE_SECURE = 3;
     private static final int REQUEST_CONNECT_DEVICE_INSECURE = 4;
     private static final int REQUEST_ENABLE_BT = 5;
+    private static final int REQUEST_PICK_ACCOUNT = 6;
+    private static final int REQUEST_AUTHENTICATE = 7;
+    private static final String API_PREFIX = "https://picasaweb.google.com/data/feed/api/user/";
 
-    private StringBuffer mOutStringBuffer;
     private BluetoothAdapter mBluetoothAdapter = null;
     private BluetoothChatService mChatService = null;
 
     private WifiManager mWifiManager;
     private WifiReceiver mWifiReceiver;
+
+    private FirebaseAuth mFirebaseAuth;
+    private FirebaseDatabase mFirebaseDatabase;
+    private String mirrorAppUID;
+    private String controlAppUID;
+
+    private PicasawebService picasawebService;
+    private int albumIndex = -1;
+
+    private AccountManager accountManager;
+    private Account[] accounts;
+    private String selectedAccountName;
+    private Account selectedAccount;
 
     private boolean isConnected = false;
 
@@ -97,10 +144,99 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        mFirebaseAuth = FirebaseAuth.getInstance();
+        if (mFirebaseAuth.getCurrentUser() == null) {
+            mFirebaseAuth.signInAnonymously().addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+                @Override
+                public void onComplete(@NonNull Task<AuthResult> task) {
+                    if (task.isSuccessful()) {
+                        // Sign in success
+                        Log.d(TAG, "signInAnonymously:success");
+                        if (mFirebaseAuth.getCurrentUser() != null) {
+                            controlAppUID = mFirebaseAuth.getCurrentUser().getUid();
+                        }
+                    } else {
+                        // If sign in fails
+                        Log.w(TAG, "signInAnonymously:failure", task.getException());
+                        Toast.makeText(MainActivity.this, "Authentication failed.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        } else {
+            controlAppUID = mFirebaseAuth.getCurrentUser().getUid();
+        }
+
+        mFirebaseDatabase = FirebaseDatabase.getInstance();
+        final DatabaseReference controlsRef = mFirebaseDatabase.getReference("controls");
+        controlsRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+                if (!TextUtils.isEmpty(controlAppUID)) {
+                    mirrorAppUID = dataSnapshot.child(controlAppUID).child("mirror_app_uid").getValue(String.class);
+                    Log.d(TAG, "Value is: " + mirrorAppUID);
+                    if (!TextUtils.isEmpty(mirrorAppUID)) {
+                        mActivityMainBinding.btnChooseAlbum.setVisibility(View.VISIBLE);
+                    } else {
+                        mActivityMainBinding.btnChooseAlbum.setVisibility(View.GONE);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Failed to read value
+                Log.w(TAG, "Failed to read value.", error.toException());
+            }
+        });
+
+        mActivityMainBinding.btnChooseAlbum.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                accountManager = (AccountManager) getSystemService(ACCOUNT_SERVICE);
+                accounts = accountManager.getAccounts();
+                Log.d(TAG, "Got " + accounts.length + " accounts");
+                for (Account a: accounts) {
+                    Log.d(TAG, a.name + " " + a.type);
+                }
+
+                Intent intent = AccountPicker.newChooseAccountIntent(
+                        null,
+                        null,
+                        new String[]{"com.google"},
+                        false,
+                        null,
+                        null,
+                        null,
+                        null);
+                startActivityForResult(intent, REQUEST_PICK_ACCOUNT);
+            }
+        });
+
         String[] PERMISSIONS = {Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.GET_ACCOUNTS};
         if (!hasPermissions(this, PERMISSIONS)){
-            ActivityCompat.requestPermissions(this, PERMISSIONS, PERMISSIONS_REQUEST_CODE_ACCESS_COARSE_LOCATION);
+            ActivityCompat.requestPermissions(this, PERMISSIONS, PERMISSIONS_REQUEST_CODE);
         }
+    }
+
+    public <T extends GphotoFeed> T getFeed(String feedHref, Class<T> feedClass) throws IOException, ServiceException {
+        Log.d(TAG, "Get Feed URL: " + feedHref);
+        return picasawebService.getFeed(new URL(feedHref), feedClass);
+    }
+
+    public List<AlbumEntry> getAlbums(String userId) throws IOException, ServiceException {
+        String albumUrl = API_PREFIX + userId;
+        UserFeed userFeed = getFeed(albumUrl, UserFeed.class);
+        List<GphotoEntry> entries = userFeed.getEntries();
+        List<AlbumEntry> albums = new ArrayList<>();
+        for (GphotoEntry entry : entries) {
+            AlbumEntry ae = new AlbumEntry(entry);
+            Log.d(TAG, "Album name " + ae.getName());
+            Log.d(TAG, "Album title " + ae.getTitle().getPlainText());
+            albums.add(ae);
+        }
+        return albums;
     }
 
     class WifiReceiver extends BroadcastReceiver {
@@ -153,7 +289,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         switch (requestCode) {
-            case PERMISSIONS_REQUEST_CODE_ACCESS_COARSE_LOCATION: {
+            case PERMISSIONS_REQUEST_CODE: {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
                 } else {
@@ -217,8 +353,6 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "setupChat()");
         // Initialize the BluetoothChatService to perform bluetooth connections
         mChatService = new BluetoothChatService(this, mHandler);
-        // Initialize the buffer for outgoing messages
-        mOutStringBuffer = new StringBuffer("");
     }
 
     /**
@@ -238,12 +372,8 @@ public class MainActivity extends AppCompatActivity {
             // Get the message bytes and tell the BluetoothChatService to write
             byte[] send = message.getBytes();
             mChatService.write(send);
-
-            // Reset out string buffer to zero and clear the edit text field
-            mOutStringBuffer.setLength(0);
         }
     }
-
 
     /**
      * The Handler that gets information back from the BluetoothChatService
@@ -257,6 +387,11 @@ public class MainActivity extends AppCompatActivity {
                         case BluetoothChatService.STATE_CONNECTED:
                             isConnected = true;
                             mActivityMainBinding.btnConnectBluetooth.setText("Disconnect");
+                            mActivityMainBinding.btnSetWifiSettings.setVisibility(View.VISIBLE);
+                            if (!TextUtils.isEmpty(controlAppUID)) {
+                                String message = "ControlUID: " + controlAppUID;
+                                MainActivity.this.sendMessage(message);
+                            }
                             break;
                         case BluetoothChatService.STATE_CONNECTING:
                             break;
@@ -265,6 +400,7 @@ public class MainActivity extends AppCompatActivity {
                         case BluetoothChatService.STATE_NONE:
                             isConnected = false;
                             mActivityMainBinding.btnConnectBluetooth.setText("Connect via Bluetooth");
+                            mActivityMainBinding.btnSetWifiSettings.setVisibility(View.GONE);
                             break;
                     }
                     break;
@@ -284,6 +420,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(MainActivity.this, "Connected to " + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                     isConnected = true;
                     mActivityMainBinding.btnConnectBluetooth.setText("Disconnect");
+                    mActivityMainBinding.btnSetWifiSettings.setVisibility(View.VISIBLE);
                     break;
                 case Constants.MESSAGE_TOAST:
                     Toast.makeText(MainActivity.this, msg.getData().getString(Constants.TOAST), Toast.LENGTH_SHORT).show();
@@ -316,9 +453,114 @@ public class MainActivity extends AppCompatActivity {
                     Log.d(TAG, "BT not enabled");
                     Toast.makeText(this, "Bluetooth was not enabled", Toast.LENGTH_SHORT).show();
                 }
+                break;
+            case REQUEST_PICK_ACCOUNT:
+                if (resultCode == RESULT_OK) {
+                    String accountName = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
+                    Log.d(TAG, "Selected Account " + accountName);
+                    selectedAccount =  null;
+                    for (Account a: accounts) {
+                        if (a.name.equals(accountName)) {
+                            selectedAccount = a;
+                            break;
+                        }
+                    }
+                    selectedAccountName = accountName;
+
+                    accountManager.getAuthToken(
+                            selectedAccount,        // Account retrieved using getAccountsByType()
+                            "lh2",                  // Auth scope may be http://picasaweb.google.com/data/
+                            null,                   // Authenticator-specific options
+                            this,                   // Your activity
+                            new OnTokenAcquired(),  // Callback called when a token is successfully acquired
+                            null);                  // Callback called if an error occ
+                }
+                break;
+            case REQUEST_AUTHENTICATE:
+                if (resultCode == RESULT_OK) {
+                    accountManager.getAuthToken(
+                            selectedAccount,        // Account retrieved using getAccountsByType()
+                            "lh2",                  // Auth scope may be http://picasaweb.google.com/data/
+                            null,                   // Authenticator-specific options
+                            this,                   // Your activity
+                            new OnTokenAcquired(),  // Callback called when a token is successfully acquired
+                            null);                  // Callback called if an error occ
+                }
+                break;
         }
     }
 
+    private class OnTokenAcquired implements AccountManagerCallback<Bundle> {
+        @Override
+        public void run(AccountManagerFuture<Bundle> result) {
+            try {
+                Bundle b = result.getResult();
+
+                if (b.containsKey(AccountManager.KEY_INTENT)) {
+                    Intent intent = b.getParcelable(AccountManager.KEY_INTENT);
+                    int flags = intent.getFlags();
+                    flags &= ~Intent.FLAG_ACTIVITY_NEW_TASK;
+                    intent.setFlags(flags);
+                    startActivityForResult(intent, REQUEST_AUTHENTICATE);
+                    return;
+                }
+
+                if (b.containsKey(AccountManager.KEY_AUTHTOKEN)) {
+                    final String authToken = b.getString(AccountManager.KEY_AUTHTOKEN);
+                    Log.d(TAG, "Auth token " + authToken);
+                    picasawebService = new PicasawebService("slideshow");
+                    picasawebService.setUserToken(authToken);
+
+                    new AsyncTask<Void, Void, List<AlbumEntry>>() {
+                        @Override
+                        protected List<AlbumEntry> doInBackground(Void... voids) {
+                            List<AlbumEntry> albums;
+                            try {
+                                albums = getAlbums(selectedAccountName);
+                                Log.d(TAG, "Got " + albums.size() + " albums");
+                                return albums;
+                            } catch (ServiceForbiddenException e) {
+                                Log.e(TAG, "Token expired, invalidating");
+                                accountManager.invalidateAuthToken("com.google", authToken);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            } catch (ServiceException e) {
+                                e.printStackTrace();
+                            }
+                            return null;
+                        }
+                        protected void onPostExecute(List<AlbumEntry> result) {
+                            AlertDialog.Builder adb = new AlertDialog.Builder(MainActivity.this);
+                            CharSequence[] items = new CharSequence[result.size()];
+                            for (int i = 0; i < result.size(); i++) {
+                                items[i] = result.get(i).getTitle().getPlainText();
+                            }
+                            adb.setSingleChoiceItems(items, 0, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    albumIndex = i;
+                                }
+                            });
+                            adb.setNegativeButton("Cancel", null);
+                            adb.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    DatabaseReference mirrorsRef = mFirebaseDatabase.getReference("mirrors");
+                                    if (!TextUtils.isEmpty(mirrorAppUID)) {
+                                        mirrorsRef.child(mirrorAppUID).child("google_photos").setValue(new GooglePhotosInfo(true, authToken, selectedAccountName, albumIndex));
+                                    }
+                                }
+                            });
+                            adb.setTitle("Choose album");
+                            adb.show();
+                        }
+                    }.execute(null, null, null);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     /**
      * Establish connection with other device
