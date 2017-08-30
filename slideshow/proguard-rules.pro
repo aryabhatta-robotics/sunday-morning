@@ -26,14 +26,21 @@
 
 -keepattributes Signature
 -keepattributes *Annotation*
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
+
+-keepclassmembers class com.sundaymorning.model.** {*;}
+-keepclassmembers class com.google.gdata.model.** {*;}
+
+-dontwarn javax.activation.**
+-dontwarn com.sun.**
+-dontwarn com.google.api.client.**
+-dontwarn com.google.gdata.**
+-dontwarn org.mortbay.log.**
 
 -keep public class * implements com.bumptech.glide.module.GlideModule
 -keep public class * extends com.bumptech.glide.AppGlideModule
 -keep public enum com.bumptech.glide.load.resource.bitmap.ImageHeaderParser$** {
   **[] $VALUES;
   public *;
-}
-
--keepclassmembers class com.sundaymorning.model.** {
-  *;
 }

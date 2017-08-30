@@ -26,7 +26,14 @@
 
 -keepattributes Signature
 -keepattributes *Annotation*
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
 
--keepclassmembers class com.sundaymorning.slideshowremotecontrol.model.** {
-  *;
-}
+-keepclassmembers class com.sundaymorning.slideshowremotecontrol.model.** {*;}
+-keepclassmembers class com.google.gdata.model.** {*;}
+
+-dontwarn javax.activation.**
+-dontwarn com.sun.**
+-dontwarn com.google.api.client.**
+-dontwarn com.google.gdata.**
+-dontwarn org.mortbay.log.**
