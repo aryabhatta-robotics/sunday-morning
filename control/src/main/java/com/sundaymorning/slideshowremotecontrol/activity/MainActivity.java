@@ -185,6 +185,15 @@ public class MainActivity extends AppCompatActivity {
                         mActivityMainBinding.btnChooseAlbum.setVisibility(View.GONE);
                         mActivityMainBinding.btnEnabledSlideshow.setVisibility(View.GONE);
                     }
+                    slideshowEnabled = dataSnapshot.child("slideshow_enabled").getValue(Boolean.class);
+                    if (slideshowEnabled == null) {
+                        slideshowEnabled = true;
+                    }
+                    if (slideshowEnabled) {
+                        mActivityMainBinding.btnEnabledSlideshow.setText("Disable slideshow");
+                    } else {
+                        mActivityMainBinding.btnEnabledSlideshow.setText("Enable slideshow");
+                    }
                 }
             }
 
