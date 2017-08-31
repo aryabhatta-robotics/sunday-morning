@@ -511,7 +511,6 @@ public class MainActivity extends AppCompatActivity {
     private void sendMessage(String message) {
         // Check that we're actually connected before trying anything
         if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
-            Toast.makeText(this, "You are not connected to a device", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -702,6 +701,10 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                         });
+                    }
+                    if (status == NetworkUtil.NETWORK_STATUS_WIFI) {
+                        String message = "WiFi connected";
+                        MainActivity.this.sendMessage(message);
                     }
                 }
 
