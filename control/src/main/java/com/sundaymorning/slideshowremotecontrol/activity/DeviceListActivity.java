@@ -80,6 +80,7 @@ public class DeviceListActivity extends Activity {
 
         // Find and set up the ListView for newly discovered devices
         mActivityDeviceListBinding.newDevices.setAdapter(mNewDevicesArrayAdapter);
+        mActivityDeviceListBinding.newDevices.setOnItemClickListener(mDeviceClickListener);
 
         // Register for broadcasts when a device is discovered
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
