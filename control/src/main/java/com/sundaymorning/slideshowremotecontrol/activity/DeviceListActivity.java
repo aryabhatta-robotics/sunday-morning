@@ -77,11 +77,9 @@ public class DeviceListActivity extends Activity {
 
         // Find and set up the ListView for paired devices
         mActivityDeviceListBinding.pairedDevices.setAdapter(pairedDevicesArrayAdapter);
-        mActivityDeviceListBinding.pairedDevices.setOnItemClickListener(mDeviceClickListener);
 
         // Find and set up the ListView for newly discovered devices
         mActivityDeviceListBinding.newDevices.setAdapter(mNewDevicesArrayAdapter);
-        mActivityDeviceListBinding.newDevices.setOnItemClickListener(mDeviceClickListener);
 
         // Register for broadcasts when a device is discovered
         IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
@@ -103,9 +101,11 @@ public class DeviceListActivity extends Activity {
             for (BluetoothDevice device : pairedDevices) {
                 pairedDevicesArrayAdapter.add(device.getName() + "\n" + device.getAddress());
             }
+            mActivityDeviceListBinding.pairedDevices.setOnItemClickListener(mDeviceClickListener);
         } else {
             String noDevices = getResources().getText(R.string.none_paired).toString();
             pairedDevicesArrayAdapter.add(noDevices);
+            mActivityDeviceListBinding.pairedDevices.setOnItemClickListener(null);
         }
     }
 
@@ -188,8 +188,11 @@ public class DeviceListActivity extends Activity {
                 setProgressBarIndeterminateVisibility(false);
                 setTitle(R.string.select_device);
                 if (mNewDevicesArrayAdapter.getCount() == 0) {
+                    mActivityDeviceListBinding.newDevices.setOnItemClickListener(null);
                     String noDevices = getResources().getText(R.string.none_found).toString();
                     mNewDevicesArrayAdapter.add(noDevices);
+                } else {
+                    mActivityDeviceListBinding.newDevices.setOnItemClickListener(mDeviceClickListener);
                 }
             }
         }
