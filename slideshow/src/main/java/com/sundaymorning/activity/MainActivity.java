@@ -153,12 +153,6 @@ public class MainActivity extends AppCompatActivity {
         if (mBluetoothAdapter == null) {
             Log.d(TAG, "Bluetooth is not available");
             Toast.makeText(MainActivity.this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
-        } else {
-            if (!mBluetoothAdapter.isEnabled()) {
-                Intent intentEnableBluetooth = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                intentEnableBluetooth.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivityForResult(intentEnableBluetooth, 0);
-            }
         }
 
         clockHandler = new Handler(getMainLooper());
@@ -510,15 +504,17 @@ public class MainActivity extends AppCompatActivity {
      */
     private void sendMessage(String message) {
         // Check that we're actually connected before trying anything
-        if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
-            return;
-        }
+        if (mChatService != null) {
+            if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
+                return;
+            }
 
-        // Check that there's actually something to send
-        if (message.length() > 0) {
-            // Get the message bytes and tell the BluetoothChatService to write
-            byte[] send = message.getBytes();
-            mChatService.write(send);
+            // Check that there's actually something to send
+            if (message.length() > 0) {
+                // Get the message bytes and tell the BluetoothChatService to write
+                byte[] send = message.getBytes();
+                mChatService.write(send);
+            }
         }
     }
 

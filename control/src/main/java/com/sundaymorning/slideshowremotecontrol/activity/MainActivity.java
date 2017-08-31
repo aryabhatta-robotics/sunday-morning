@@ -387,16 +387,18 @@ public class MainActivity extends AppCompatActivity {
      */
     private void sendMessage(String message) {
         // Check that we're actually connected before trying anything
-        if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
-            Toast.makeText(this, "You are not connected to a device", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (mChatService != null) {
+            if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
+                Toast.makeText(this, "You are not connected to a device", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-        // Check that there's actually something to send
-        if (message.length() > 0) {
-            // Get the message bytes and tell the BluetoothChatService to write
-            byte[] send = message.getBytes();
-            mChatService.write(send);
+            // Check that there's actually something to send
+            if (message.length() > 0) {
+                // Get the message bytes and tell the BluetoothChatService to write
+                byte[] send = message.getBytes();
+                mChatService.write(send);
+            }
         }
     }
 
