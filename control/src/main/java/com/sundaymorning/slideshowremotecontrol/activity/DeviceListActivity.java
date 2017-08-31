@@ -192,8 +192,6 @@ public class DeviceListActivity extends Activity {
                     mActivityDeviceListBinding.newDevices.setOnItemClickListener(null);
                     String noDevices = getResources().getText(R.string.none_found).toString();
                     mNewDevicesArrayAdapter.add(noDevices);
-                } else {
-                    mActivityDeviceListBinding.newDevices.setOnItemClickListener(mDeviceClickListener);
                 }
             }
         }

@@ -89,6 +89,8 @@ public class MainActivity extends AppCompatActivity {
     private PicasawebService picasawebService;
     private int albumIndex = -1;
 
+    private Boolean slideshowEnabled = true;
+
     private AccountManager accountManager;
     private Account[] accounts;
     private String selectedAccountName;
@@ -178,8 +180,10 @@ public class MainActivity extends AppCompatActivity {
                     Log.d(TAG, "Value is: " + mirrorAppUID);
                     if (!TextUtils.isEmpty(mirrorAppUID)) {
                         mActivityMainBinding.btnChooseAlbum.setVisibility(View.VISIBLE);
+                        mActivityMainBinding.btnEnabledSlideshow.setVisibility(View.VISIBLE);
                     } else {
                         mActivityMainBinding.btnChooseAlbum.setVisibility(View.GONE);
+                        mActivityMainBinding.btnEnabledSlideshow.setVisibility(View.GONE);
                     }
                 }
             }
@@ -211,6 +215,27 @@ public class MainActivity extends AppCompatActivity {
                         null,
                         null);
                 startActivityForResult(intent, REQUEST_PICK_ACCOUNT);
+            }
+        });
+
+        mActivityMainBinding.btnEnabledSlideshow.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (slideshowEnabled) {
+                    DatabaseReference mirrorsRef = mFirebaseDatabase.getReference("mirrors");
+                    if (!TextUtils.isEmpty(mirrorAppUID)) {
+                        mirrorsRef.child(mirrorAppUID).child("slideshow_enabled").setValue(false);
+                    }
+                    mActivityMainBinding.btnEnabledSlideshow.setText("Enable slideshow");
+                    slideshowEnabled = false;
+                } else {
+                    DatabaseReference mirrorsRef = mFirebaseDatabase.getReference("mirrors");
+                    if (!TextUtils.isEmpty(mirrorAppUID)) {
+                        mirrorsRef.child(mirrorAppUID).child("slideshow_enabled").setValue(true);
+                    }
+                    mActivityMainBinding.btnEnabledSlideshow.setText("Disable slideshow");
+                    slideshowEnabled = true;
+                }
             }
         });
 

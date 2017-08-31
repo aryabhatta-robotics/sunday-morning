@@ -99,6 +99,8 @@ public class MainActivity extends AppCompatActivity {
     private int localImageIndex = -1;
     private int localImagesCount = 0;
 
+    private Boolean slideshowEnabled = true;
+
     private BluetoothAdapter mBluetoothAdapter = null;
     private BluetoothChatService mChatService = null;
     private static final int REQUEST_ENABLE_BT = 5;
@@ -172,6 +174,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 mGooglePhotosInfo = dataSnapshot.child("google_photos").getValue(GooglePhotosInfo.class);
+                slideshowEnabled = dataSnapshot.child("slideshow_enabled").getValue(Boolean.class);
+                if (slideshowEnabled == null) {
+                    slideshowEnabled = true;
+                }
 
                 if (mGooglePhotosInfo != null && mGooglePhotosInfo.googlePhotosEnabled) {
 
@@ -411,35 +417,39 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showNextImage() {
-        if (mGooglePhotosInfo != null && mGooglePhotosInfo.googlePhotosEnabled && !googlePhotos.isEmpty()) {
-            if (currentDrawable != null) {
-                mActivityMainBinding.imageSwitcherSlideshow.setVisibility(View.VISIBLE);
-                mActivityMainBinding.imageSwitcherSlideshow.setImageDrawable(currentDrawable);
-                googlePhotosImageIndex++;
-                if (googlePhotosImageIndex > googlePhotosImagesCount - 1) {
-                    googlePhotosImageIndex = 0;
+        if (slideshowEnabled) {
+            if (mGooglePhotosInfo != null && mGooglePhotosInfo.googlePhotosEnabled && !googlePhotos.isEmpty()) {
+                if (currentDrawable != null) {
+                    mActivityMainBinding.imageSwitcherSlideshow.setVisibility(View.VISIBLE);
+                    mActivityMainBinding.imageSwitcherSlideshow.setImageDrawable(currentDrawable);
+                    googlePhotosImageIndex++;
+                    if (googlePhotosImageIndex > googlePhotosImagesCount - 1) {
+                        googlePhotosImageIndex = 0;
+                    }
                 }
+                String url = googlePhotos.get(googlePhotosImageIndex).getMediaContents().get(0).getUrl();
+                Glide.with(this)
+                        .asDrawable()
+                        .load(url)
+                        .into(new SimpleTarget<Drawable>() {
+                            @Override
+                            public void onResourceReady(Drawable resource, Transition<? super Drawable> transition) {
+                                currentDrawable = resource;
+                            }
+                        });
+            } else if (mCursor != null && mCursor.getCount() > 0) {
+                mActivityMainBinding.imageSwitcherSlideshow.setVisibility(View.VISIBLE);
+                localImageIndex++;
+                if (localImageIndex > localImagesCount - 1) {
+                    localImageIndex = 0;
+                }
+                mCursor.moveToPosition(localImageIndex);
+                int imageID = mCursor.getInt(columnIndex);
+                Uri uri = Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, Integer.toString(imageID));
+                mActivityMainBinding.imageSwitcherSlideshow.setImageURI(uri);
+            } else {
+                mActivityMainBinding.imageSwitcherSlideshow.setVisibility(View.GONE);
             }
-            String url = googlePhotos.get(googlePhotosImageIndex).getMediaContents().get(0).getUrl();
-            Glide.with(this)
-                    .asDrawable()
-                    .load(url)
-                    .into(new SimpleTarget<Drawable>() {
-                        @Override
-                        public void onResourceReady(Drawable resource, Transition<? super Drawable> transition) {
-                            currentDrawable = resource;
-                        }
-                    });
-        } else if (mCursor != null && mCursor.getCount() > 0) {
-            mActivityMainBinding.imageSwitcherSlideshow.setVisibility(View.VISIBLE);
-            localImageIndex++;
-            if (localImageIndex > localImagesCount - 1) {
-                localImageIndex = 0;
-            }
-            mCursor.moveToPosition(localImageIndex);
-            int imageID = mCursor.getInt(columnIndex);
-            Uri uri = Uri.withAppendedPath( MediaStore.Images.Media.EXTERNAL_CONTENT_URI, Integer.toString(imageID) );
-            mActivityMainBinding.imageSwitcherSlideshow.setImageURI(uri);
         } else {
             mActivityMainBinding.imageSwitcherSlideshow.setVisibility(View.GONE);
         }
