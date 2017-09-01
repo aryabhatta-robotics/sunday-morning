@@ -248,7 +248,7 @@ public class BluetoothChatService {
         // Send a failure message back to the Activity
         Message msg = mHandler.obtainMessage(Constants.MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(Constants.TOAST, "Unable to connect device");
+        bundle.putString(Constants.TOAST, "Please disconnect any other bluetooth connection to the mirror");
         msg.setData(bundle);
         mHandler.sendMessage(msg);
 
