@@ -453,7 +453,10 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this, "WiFi on mirror connected", Toast.LENGTH_SHORT).show();
                         mActivityMainBinding.btnChooseAlbum.setVisibility(View.VISIBLE);
                         mActivityMainBinding.btnEnabledSlideshow.setVisibility(View.VISIBLE);
-                    } else if (readMessage.equals("isOnline")) {
+                    } else if (readMessage.startsWith("MirrorUID: ")) {
+                        mirrorAppUID = readMessage.substring(11, 39);
+                    }
+                    if (readMessage.contains("isOnline")) {
                         mActivityMainBinding.btnChooseAlbum.setVisibility(View.VISIBLE);
                         mActivityMainBinding.btnEnabledSlideshow.setVisibility(View.VISIBLE);
                     }

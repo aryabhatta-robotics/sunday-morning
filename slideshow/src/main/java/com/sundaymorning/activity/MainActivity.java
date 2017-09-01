@@ -528,10 +528,14 @@ public class MainActivity extends AppCompatActivity {
                 case Constants.MESSAGE_STATE_CHANGE:
                     switch (msg.arg1) {
                         case BluetoothChatService.STATE_CONNECTED:
-                            if (NetworkUtil.isOnline(MainActivity.this)) {
-                                String message = "isOnline";
-                                MainActivity.this.sendMessage(message);
+                            String message = "";
+                            if (!TextUtils.isEmpty(mirrorAppUID)) {
+                                message = "MirrorUID: " + mirrorAppUID;
                             }
+                            if (NetworkUtil.isOnline(MainActivity.this)) {
+                                message += " isOnline";
+                            }
+                            MainActivity.this.sendMessage(message);
                             break;
                         case BluetoothChatService.STATE_CONNECTING:
                             break;
