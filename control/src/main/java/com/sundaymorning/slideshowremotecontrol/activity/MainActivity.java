@@ -451,6 +451,11 @@ public class MainActivity extends AppCompatActivity {
                     String readMessage = new String(readBuf, 0, msg.arg1);
                     if (readMessage.equals("WiFi connected")) {
                         Toast.makeText(MainActivity.this, "WiFi on mirror connected", Toast.LENGTH_SHORT).show();
+                        mActivityMainBinding.btnChooseAlbum.setVisibility(View.VISIBLE);
+                        mActivityMainBinding.btnEnabledSlideshow.setVisibility(View.VISIBLE);
+                    } else if (readMessage.equals("isOnline")) {
+                        mActivityMainBinding.btnChooseAlbum.setVisibility(View.VISIBLE);
+                        mActivityMainBinding.btnEnabledSlideshow.setVisibility(View.VISIBLE);
                     }
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
